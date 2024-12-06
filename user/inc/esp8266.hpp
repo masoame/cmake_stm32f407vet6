@@ -54,14 +54,18 @@ namespace wifi {
 		UART_HandleTypeDef* m_huart = nullptr;
 	public:
 		esp8266(UART_HandleTypeDef* esp8266_huart);
-		void GetWifiStatus();
+
+		bool PowerOn();
+		bool PowerOff();
+
+		bool WifiIsConnected();
 
 		bool ConnectWifi(const std::string& ssid, const std::string& password);
 		bool DisconnectWifi();
 
 		void Ping(const std::string& ip);
-		void LinkTcp(const std::string& ip, unsigned short port);
-		void SendTcp(const std::string& data);
+		bool LinkTcp(const std::string& ip, unsigned short port);
+		bool SendTcp(const std::string& data);
 		void CloseTcp();
 	private:
 

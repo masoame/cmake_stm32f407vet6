@@ -37,9 +37,13 @@ namespace serialport {
             RESPONSE_TYPE_OK,
             RESPONSE_TYPE_ERROR,
             RESPONSE_TYPE_TIMEOUT,
+            RESPONSE_TYPE_BUSY,
             RESPONSE_TYPE_UNKNOWN,
         };
         //bool Only
         ResponseType GetResponse(const std::string& cmd,const std::chrono::milliseconds ms, const std::initializer_list<std::string>& search_list) const;
+
+        
+
     };
 }

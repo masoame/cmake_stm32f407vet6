@@ -3,7 +3,6 @@
 #include "stm32f4xx_hal_def.h"
 #include <chrono>
 #include <cstdint>
-
 namespace serialport {
 
     Driver::Driver(UART_HandleTypeDef* huart):m_huart(huart),m_recv_buffer(new uint8_t[Driver::m_recv_buffer_size])
@@ -64,7 +63,7 @@ namespace serialport {
 	}
 
 
-	inline bool Driver::WaitForRecvCallback(const std::chrono::milliseconds _ms) const
+	bool Driver::WaitForRecvCallback(const std::chrono::milliseconds _ms) const
     {
 		uint32_t tickstart = HAL_GetTick();
 		uint32_t wait = _ms.count();
@@ -76,6 +75,8 @@ namespace serialport {
 
 	Driver::ResponseType Driver::GetResponse(const std::string& cmd,const std::chrono::milliseconds ms,const std::initializer_list<std::string>& search_list) const{
 
+		static const std::string busy_str = "busy p...";
+
 		Driver::ResponseType flag;
 
 		if(OpenAsyncRecv([this,&search_list,&flag](char* data, std::size_t len)->void{
@@ -84,47 +85,18 @@ namespace serialport {
 			char* _end = data + len;
 
 			flag = Driver::RESPONSE_TYPE_ERROR;
+
+			if(std::search(_start, _end, busy_str.begin(), busy_str.end()) != _end){
+				flag = Driver::RESPONSE_TYPE_BUSY;
+				this->CloseAsyncRecv();
+				return;
+			}
+
 			for(auto& search_str : search_list){
 				if(std::search(_start, _end, search_str.begin(), search_str.end()) != _end){
 					flag = Driver::RESPONSE_TYPE_OK;
 					this->CloseAsyncRecv();
 					return;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-					
 				}
 			}
 			this->ContinueAsyncRecv();
@@ -133,10 +105,10 @@ namespace serialport {
 			return Driver::RESPONSE_TYPE_UNKNOWN;
 		}
 
-		if(HAL_UART_Transmit_DMA(this->m_huart, reinterpret_cast<const uint8_t*>(cmd.data()), cmd.size())!= HAL_OK){
+		if(cmd.empty() == false && cmd.size()!=0 && HAL_UART_Transmit(this->m_huart, reinterpret_cast<const uint8_t*>(cmd.data()), cmd.size(),50000)!= HAL_OK){
 			flag = Driver::RESPONSE_TYPE_UNKNOWN;
 		}
-		if(this->WaitForRecvCallback(ms)==false){
+		if(this->WaitForRecvCallback(ms)==false && flag != Driver::RESPONSE_TYPE_ERROR){
 			flag = Driver::RESPONSE_TYPE_TIMEOUT;
 		}
         this->CloseAsyncRecv();
